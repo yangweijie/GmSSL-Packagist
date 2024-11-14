@@ -1,0 +1,26 @@
+{
+    "name": "gmssl/gmssl",
+    "description": "The GmSSL open source community.",
+    "keywords": [
+        "GmSSL"
+    ],
+    "type": "metapackage",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "jundayw",
+            "email": "jundayw@126.com"
+        }
+    ],
+    "require": {
+        "php": "*",
+        "ext-gmssl": "*"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.x-dev"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
