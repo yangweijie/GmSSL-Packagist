@@ -1,4 +1,4 @@
-name: Build GmSSL for PHP on Windows and CentOS
+name: Build GmSSL for PHP on CentOS
 
 on:
   # push:
@@ -48,7 +48,7 @@ jobs:
       - name: Build GmSSL PHP extension for PHP ${{ matrix.php }}
         run: |
           cd php-${{ matrix.php }}
-          $HOME/php-${{ matrix.php }}/bin/phpize
+          ./bin/phpize
           ./configure --with-php-config=$HOME/php-${{ matrix.php }}/bin/php-config --with-gmssl
           make -j$(nproc)
           # ls -lh modules/gmssl.so
