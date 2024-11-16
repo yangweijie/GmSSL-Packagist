@@ -12,15 +12,20 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        php: [8.0, 8.1, 8.2]
+        php: [8.1.0]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install dependencies for CentOS
+      # - name: Install dependencies for CentOS
+      #   run: |
+      #     sudo yum -y install gcc gcc-c++ cmake make wget php-devel libssl-dev
+      #     sudo yum -y groupinstall "Development Tools"
+      - name: Install dependencies for Ubuntu
         run: |
-          sudo yum -y install gcc gcc-c++ cmake make wget php-devel libssl-dev
-          sudo yum -y groupinstall "Development Tools"
+          sudo apt-get update
+          sudo apt-get install -y gcc g++ cmake make wget php-dev libssl-dev
+          sudo apt-get install -y build-essential
 
       - name: Download and compile PHP ${{ matrix.php }}
         run: |
@@ -58,7 +63,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        php: [8.0, 8.1, 8.2]
+        php: [8.0.0]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -74,10 +79,10 @@ jobs:
           PHP_8_1_VS: '"Visual Studio 16 2019"'
           PHP_8_2_VS: '"Visual Studio 17 2022"'
         run: |
-          $VisualStudio = if (${{ matrix.php }} -eq '8.0') { $env:PHP_8_0_VS } `
-                         elseif (${{ matrix.php }} -eq '8.1') { $env:PHP_8_1_VS } `
+          $VisualStudio = if (${{ matrix.php }} -eq '8.0.0') { $env:PHP_8_0_VS } `
+                         elseif (${{ matrix.php }} -eq '8.1.0') { $env:PHP_8_1_VS } `
                          else { $env:PHP_8_2_VS }
-          curl -O https://windows.php.net/downloads/releases/php-${{ matrix.php }}-src.zip
+          curl -O https://windows.php.net/downloads/releases/archives/php-${{ matrix.php }}-src.zip
           Expand-Archive php-${{ matrix.php }}-src.zip -DestinationPath php-src
           cd php-src
           buildconf --force
