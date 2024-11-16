@@ -65,8 +65,8 @@ jobs:
           cd php-src
           
           # 运行 buildconf.bat 和配置 PHP
-          .\buildconf.bat --force
-          .\configure.bat --disable-all --enable-cli --with-vs=$VisualStudio
+          cmd /c .\buildconf.bat --force
+          cmd /c .\configure.bat --disable-all --enable-cli --with-vs=$VisualStudio
           
           # 编译 PHP
           nmake
@@ -97,10 +97,10 @@ jobs:
           cd php-src
           
           # 重新运行 buildconf.bat（如果需要）
-          .\buildconf.bat
+          cmd /c .\buildconf.bat
           
           # 配置 PHP 扩展并启用 GmSSL
-          .\configure.bat --with-php-config=$env:PHP_CONFIG --with-gmssl
+          cmd /c .\configure.bat --with-php-config=$env:PHP_CONFIG --with-gmssl
           
           # 编译 PHP 扩展
           nmake
