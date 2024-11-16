@@ -1,0 +1,61 @@
+name: Build GmSSL for PHP on Windows and CentOS
+
+on:
+  # push:
+  #   branches:
+  #     - main
+  workflow_dispatch:
+
+jobs:
+  build-linux:
+    name: Build on CentOS (PHP ${{ matrix.php }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: [8.1.0]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # - name: Install dependencies for CentOS
+      #   run: |
+      #     sudo yum -y install gcc gcc-c++ cmake make wget php-devel libssl-dev
+      #     sudo yum -y groupinstall "Development Tools"
+      - name: Install dependencies for Ubuntu
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc g++ cmake make wget php-dev libssl-dev
+          sudo apt-get install -y build-essential
+
+      - name: Download and compile PHP ${{ matrix.php }}
+        run: |
+          wget https://www.php.net/distributions/php-${{ matrix.php }}.tar.gz
+          tar -xf php-${{ matrix.php }}.tar.gz
+          cd php-${{ matrix.php }}
+          ./configure --prefix=$HOME/php-${{ matrix.php }} --disable-all
+          make -j$(nproc)
+          make install
+
+      - name: Download and compile GmSSL (static library)
+        run: |
+          git clone https://github.com/guanzhi/GmSSL.git
+          cd GmSSL
+          cmake -DBUILD_SHARED_LIBS=OFF .
+          make -j$(nproc)
+          # ls -lh bin/libgmssl.a
+          ls -lh # Add debugging output to check if libgmssl.a exists
+
+      - name: Build GmSSL PHP extension for PHP ${{ matrix.php }}
+        run: |
+          cd php-${{ matrix.php }}
+          $HOME/php-${{ matrix.php }}/bin/phpize
+          ./configure --with-php-config=$HOME/php-${{ matrix.php }}/bin/php-config --with-gmssl
+          make -j$(nproc)
+          # ls -lh modules/gmssl.so
+          ls -lh # Add debugging output to check if libgmssl.a exists
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: gmssl-linux-php-${{ matrix.php }}
+          path: php-${{ matrix.php }}/modules/gmssl.so
