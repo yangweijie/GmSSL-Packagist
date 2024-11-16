@@ -1,10 +1,7 @@
 name: Build GmSSL for PHP on Windows
 
 on:
-  # push:
-  #   branches:
-  #     - main
-  workflow_dispatch:
+  workflow_dispatch: # 手动触发工作流
 
 jobs:
   build-windows:
@@ -12,50 +9,106 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        php: [8.0.0]
+        php: [8.0.0]  # 可以扩展更多版本
+
     steps:
+      # Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # Install dependencies for Windows
       - name: Install dependencies for Windows
         run: |
           choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
           choco install visualstudio2022buildtools --package-parameters "--includeRecommended"
+          choco install visualstudio2022-workload-vctools
 
+      # Add Visual Studio tools to PATH based on PHP version
+      - name: Add Visual Studio tools to PATH
+        run: |
+          # 根据 PHP 版本选择 Visual Studio 版本
+          if (${{ matrix.php }} -eq '8.0.0') {
+            $env:VisualStudioVersion = '16' # Visual Studio 2019
+          } elseif (${{ matrix.php }} -eq '8.1.0') {
+            $env:VisualStudioVersion = '16' # Visual Studio 2019
+          } elseif (${{ matrix.php }} -eq '8.2.0') {
+            $env:VisualStudioVersion = '17' # Visual Studio 2022
+          }
+
+          # 根据 Visual Studio 版本修改 PATH
+          if ($env:VisualStudioVersion -eq '16') {
+            $env:PATH += ";C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\MSBuild\Current\Bin"
+          } elseif ($env:VisualStudioVersion -eq '17') {
+            $env:PATH += ";C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin"
+          }
+          
+          # 输出当前的 PATH 路径
+          echo "Current PATH: $env:PATH"
+
+      # Download and compile PHP source code
       - name: Download and compile PHP ${{ matrix.php }}
         env:
-          PHP_8_0_VS: '"Visual Studio 16 2019"'
-          PHP_8_1_VS: '"Visual Studio 16 2019"'
-          PHP_8_2_VS: '"Visual Studio 17 2022"'
+          PHP_8_0_VS: "Visual Studio 16 2019"
+          PHP_8_1_VS: "Visual Studio 16 2019"
+          PHP_8_2_VS: "Visual Studio 17 2022"
         run: |
-          $VisualStudio = if (${{ matrix.php }} -eq '8.0.0') { $env:PHP_8_0_VS } `
-                         elseif (${{ matrix.php }} -eq '8.1.0') { $env:PHP_8_1_VS } `
-                         else { $env:PHP_8_2_VS }
+          # 根据 PHP 版本动态选择 Visual Studio 版本
+          $VisualStudio = switch (${{ matrix.php }}) {
+            '8.0.0' { $env:PHP_8_0_VS }
+            '8.1.0' { $env:PHP_8_1_VS }
+            default { $env:PHP_8_2_VS }
+          }
+
+          # 下载 PHP 源代码
           curl -O https://windows.php.net/downloads/releases/archives/php-${{ matrix.php }}-src.zip
           Expand-Archive php-${{ matrix.php }}-src.zip -DestinationPath php-src
           cd php-src
-          cmd /c .\buildconf.bat --force
-          cmd /c .\configure.bat --disable-all --enable-cli --with-vs=$VisualStudio
+          
+          # 运行 buildconf.bat 和配置 PHP
+          .\buildconf.bat --force
+          .\configure.bat --disable-all --enable-cli --with-vs=$VisualStudio
+          
+          # 编译 PHP
           nmake
 
+      # 下载并编译 GmSSL（静态库）
       - name: Download and compile GmSSL (static library)
         run: |
           git clone https://github.com/guanzhi/GmSSL.git
           cd GmSSL
-          cmake -G $VisualStudio -A x64 -DBUILD_SHARED_LIBS=OFF .
+          
+          # 根据 PHP 版本动态选择 Visual Studio 版本
+          $VisualStudio = switch (${{ matrix.php }}) {
+            '8.0.0' { 'Visual Studio 16 2019' }
+            '8.1.0' { 'Visual Studio 16 2019' }
+            default { 'Visual Studio 17 2022' }
+          }
+          
+          # 使用选择的 Visual Studio 版本来配置和编译 GmSSL
+          cmake -G "$VisualStudio" -A x64 -DBUILD_SHARED_LIBS=OFF .
           cmake --build . --config Release
-          # dir Release\libgmssl.lib
+          
+          # 输出目录结构以供验证
           tree .
 
+      # 为 PHP 扩展编译 GmSSL
       - name: Build GmSSL PHP extension for PHP ${{ matrix.php }}
         run: |
           cd php-src
-          cmd /c .\buildconf.bat
-          cmd /c .\configure.bat --with-php-config=$env:PHP_CONFIG --with-gmssl
+          
+          # 重新运行 buildconf.bat（如果需要）
+          .\buildconf.bat
+          
+          # 配置 PHP 扩展并启用 GmSSL
+          .\configure.bat --with-php-config=$env:PHP_CONFIG --with-gmssl
+          
+          # 编译 PHP 扩展
           nmake
-          # dir Release\gmssl.dll
+          
+          # 输出目录结构以供验证
           tree .
 
+      # 上传 Windows 构建的 Artifacts
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v3
         with:
