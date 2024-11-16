@@ -1,0 +1,61 @@
+name: Build GmSSL for PHP on Windows
+
+on:
+  # push:
+  #   branches:
+  #     - main
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Build on Windows (PHP ${{ matrix.php }})
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        php: [8.0.0]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies for Windows
+        run: |
+          choco install cmake --installargs 'ADD_CMAKE_TO_PATH=System'
+          choco install visualstudio2022buildtools --package-parameters "--includeRecommended"
+
+      - name: Download and compile PHP ${{ matrix.php }}
+        env:
+          PHP_8_0_VS: '"Visual Studio 16 2019"'
+          PHP_8_1_VS: '"Visual Studio 16 2019"'
+          PHP_8_2_VS: '"Visual Studio 17 2022"'
+        run: |
+          $VisualStudio = if (${{ matrix.php }} -eq '8.0.0') { $env:PHP_8_0_VS } `
+                         elseif (${{ matrix.php }} -eq '8.1.0') { $env:PHP_8_1_VS } `
+                         else { $env:PHP_8_2_VS }
+          curl -O https://windows.php.net/downloads/releases/archives/php-${{ matrix.php }}-src.zip
+          Expand-Archive php-${{ matrix.php }}-src.zip -DestinationPath php-src
+          cd php-src
+          .\buildconf.bat --force
+          .\configure --disable-all --enable-cli --with-vs=$VisualStudio
+          nmake
+
+      - name: Download and compile GmSSL (static library)
+        run: |
+          git clone https://github.com/guanzhi/GmSSL.git
+          cd GmSSL
+          cmake -G $VisualStudio -A x64 -DBUILD_SHARED_LIBS=OFF .
+          cmake --build . --config Release
+          dir Release\libgmssl.lib
+
+      - name: Build GmSSL PHP extension for PHP ${{ matrix.php }}
+        run: |
+          cd php-src
+          .\buildconf.bat
+          .\configure --with-php-config=$env:PHP_CONFIG --with-gmssl
+          nmake
+          dir Release\gmssl.dll
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: gmssl-windows-php-${{ matrix.php }}
+          path: php-src\Release\gmssl.dll
