@@ -34,8 +34,8 @@ jobs:
           curl -O https://windows.php.net/downloads/releases/archives/php-${{ matrix.php }}-src.zip
           Expand-Archive php-${{ matrix.php }}-src.zip -DestinationPath php-src
           cd php-src
-          .\buildconf.bat --force
-          .\configure --disable-all --enable-cli --with-vs=$VisualStudio
+          cmd /c .\buildconf.bat --force
+          cmd /c .\configure.bat --disable-all --enable-cli --with-vs=$VisualStudio
           nmake
 
       - name: Download and compile GmSSL (static library)
@@ -44,15 +44,17 @@ jobs:
           cd GmSSL
           cmake -G $VisualStudio -A x64 -DBUILD_SHARED_LIBS=OFF .
           cmake --build . --config Release
-          dir Release\libgmssl.lib
+          # dir Release\libgmssl.lib
+          tree .
 
       - name: Build GmSSL PHP extension for PHP ${{ matrix.php }}
         run: |
           cd php-src
-          .\buildconf.bat
-          .\configure --with-php-config=$env:PHP_CONFIG --with-gmssl
+          cmd /c .\buildconf.bat
+          cmd /c .\configure.bat --with-php-config=$env:PHP_CONFIG --with-gmssl
           nmake
-          dir Release\gmssl.dll
+          # dir Release\gmssl.dll
+          tree .
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v3
