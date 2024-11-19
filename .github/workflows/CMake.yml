@@ -29,7 +29,13 @@ jobs:
       # Build your program with the given configuration
       run: |
         cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-        ls -lh # Add debugging output to check if libgmssl.a exists
+        ls -lh ${{github.workspace}}/build # Add debugging output to check if libgmssl.a exists
+
+    - name: Upload Linux Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: gmssl-${{ matrix.os }}
+        path: ${{github.workspace}}/build
 
     - name: Test
       working-directory: ${{github.workspace}}/build
