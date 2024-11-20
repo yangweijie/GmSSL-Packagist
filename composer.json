@@ -4,7 +4,7 @@
     "keywords": [
         "GmSSL"
     ],
-    "type": "metapackage",
+    "type": "library",
     "license": "MIT",
     "authors": [
         {
@@ -13,8 +13,7 @@
         }
     ],
     "require": {
-        "php": "*",
-        "ext-gmssl": "*"
+        "php": "*"
     },
     "extra": {
         "branch-alias": {
