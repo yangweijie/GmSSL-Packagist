@@ -9,7 +9,7 @@ jobs:
     runs-on: windows-latest
     strategy:
       matrix:
-        php: [8.0.0]  # 可以扩展更多版本
+        php: [8.3.16]  # 可以扩展更多版本
 
     steps:
       # Checkout the repository
